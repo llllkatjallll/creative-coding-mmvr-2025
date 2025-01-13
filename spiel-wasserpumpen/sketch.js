@@ -70,9 +70,9 @@ function setup() {
   waterHeight = map(wasserlevel, 0, 100, height-200, 0);
 
   //create 4 houses on top of each other
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 6; i++) {
     let randomWidth = random(100, 350);
-    let house = new House(width/2-randomWidth/2, i * 300 +10, randomWidth, 300, false);
+    let house = new House(width/2-randomWidth/2, i * 200 +10, randomWidth, 200, false);
     houses.push(house);
   }
 }
@@ -283,7 +283,7 @@ class House {
   }
 
   display() {
-    fill("green");
+    fill(130,80,150);
     rect(this.x, this.y, this.w, this.h);
 
     //check if lower house point is under water
