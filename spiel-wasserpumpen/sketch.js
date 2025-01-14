@@ -140,7 +140,7 @@ function draw() {
 
     // draw points
     fill('white');
-    ellipse(noseX, noseY, ellipseSize, ellipseSize); // nose
+    //ellipse(noseX, noseY, ellipseSize, ellipseSize); // nose
 
 
     //ellipse(leftShoulderX, leftShoulderY, ellipseSize, ellipseSize); // left shoulder
