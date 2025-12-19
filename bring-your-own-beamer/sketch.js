@@ -1,3 +1,7 @@
+/* CONTROLS */
+
+let maxLampTime = 30000;
+
 let video;
 let handPose;
 let hands = [];
@@ -9,9 +13,9 @@ let timeAcitve = 6000;
 
 //bilder
 let myBackground;
-let laterneAn, laterneAus,laterne2An, laterne2Aus;
+let laterneAn, laterneAus, laterne2An, laterne2Aus;
 let handZu, handAuf;
-let flamme1,shine;
+let flamme1, shine;
 let scoreImage;
 let flames = [];
 
@@ -28,7 +32,8 @@ let snowflakes = [];
 //laternen
 let latMaxSize = 230;
 let latMinSize = 80;
-let activationSound,secondActivationSound;
+let activationSounds = [];
+let backgroundMusic;
 
 function preload() {
   // HandPose Modell laden
@@ -40,12 +45,19 @@ function preload() {
   laterne2Aus = loadImage("laterne2Aus.png");
   handAuf = loadImage("handAuf_tr.png");
   handZu = loadImage("handZu.png");
-  flamme1 = loadImage("images/flamme1.png");
-  myFont = loadFont('fonts/Oldenburg-Regular.ttf');
+  flamme1 = loadImage("images/flamme1.png"); myFont = loadFont('fonts/Oldenburg-Regular.ttf');
   scoreImage = loadImage("pointsScroll.png");
   shine = loadImage("images/shine.png");
-    activationSound = loadSound("sounds/holy-spell-cast-450460.mp3");
-    secondActivationSound = loadSound("sounds/fx-light-90387.mp3");
+  // Load activation sounds into array
+  activationSounds.push(loadSound("sounds/holy-spell-cast-450460.mp3"));
+  activationSounds.push(loadSound("sounds/fx-light-90387.mp3"));
+  activationSounds.push(loadSound("sounds/natural-light-138426.mp3"));
+  activationSounds.push(loadSound("sounds/WeK_UI_item-place-tree_v1_chimes_01.mp3"));
+  activationSounds.push(loadSound("sounds/WeK_UI_item-place-tree_v1_chimes_02.mp3"));
+  activationSounds.push(loadSound("sounds/WeK_UI_item-place-tree_v1_chimes_03.mp3"));
+
+  // Load background music
+  backgroundMusic = loadSound("sounds/background_music.mp3");
 }
 
 function setup() {
@@ -56,9 +68,13 @@ function setup() {
   video.hide();
   handPose.detectStart(video, gotHands);
 
+  // Start background music with volume 0.5
+  backgroundMusic.setVolume(0.5);
+  backgroundMusic.loop(); // Loop the music continuously
+
   // Wir erstellen 5 zufällige Laternen zum Start
   for (let i = 0; i < 9; i++) {
-    laternen.push(new Laterne(random(50, width - 50), random(50, height - 100), random ( latMinSize, latMaxSize)));
+    laternen.push(new Laterne(random(50, width - 50), random(50, height - 100), random(latMinSize, latMaxSize)));
   }
 
   for (let i = 0; i < 5; i++) {
@@ -71,7 +87,7 @@ function draw() {
 
   myBackground.resize(0, height);
   image(myBackground, 0, 0);
-  background(0, darkness-punktestand*((210-50)/laternen.length));
+  background(0, darkness - punktestand * ((210 - 50) / laternen.length));
 
 
   // 1. Alle Laternen anzeigen und bewegen
@@ -99,7 +115,7 @@ function draw() {
       }
     } */
 
-    // Iterate through the particle array
+  // Iterate through the particle array
   // We loop backwards because we are removing items from the array
   for (let i = snowflakes.length - 1; i >= 0; i--) {
     let p = snowflakes[i];
@@ -110,26 +126,26 @@ function draw() {
     if (p.finished()) {
       snowflakes.splice(i, 1);
     }
-  }  
+  }
 
   flames[0].display();
 
 
-push();
- scoreImage.resize(0, 170);
- tint(255, 200);
+  push();
+  scoreImage.resize(0, 170);
+  tint(255, 200);
 
-  image(scoreImage, 10, 10, );
-pop();
+  image(scoreImage, 10, 10,);
+  pop();
 
   // Punktestand anzeigen
   // fill dark brown
   fill(101, 67, 33);
   textSize(24);
   textAlign(LEFT, TOP);
- textSize(70);
-  text( punktestand + "/" + laternen.length, 110, 30);
-    textSize(28);
+  textSize(70);
+  text(punktestand + "/" + laternen.length, 110, 30);
+  textSize(28);
   text("Laternen ", 120, 115);
 }
 
@@ -189,12 +205,12 @@ function calculateHandPositions(hand, flame) {
   flame.position.x = center.x;
   flame.position.y = center.y;
 
-/*   if (flame.position.x !== flame.prevPosition.x || flame.position.y !== flame.prevPosition.y) {
-    for (let i = 0; i < 10; i++) {
-      snowflakes.push(new Particle(flame.position.x + random(-10, 10), flame.position.y + random(-10, 10)));
+  /*   if (flame.position.x !== flame.prevPosition.x || flame.position.y !== flame.prevPosition.y) {
+      for (let i = 0; i < 10; i++) {
+        snowflakes.push(new Particle(flame.position.x + random(-10, 10), flame.position.y + random(-10, 10)));
+      }
     }
-  }
-  flame.prevPosition = flame.position.copy(); */
+    flame.prevPosition = flame.position.copy(); */
 
 
 }
@@ -220,12 +236,12 @@ class Flame {
     }
     push();
     imageMode(CENTER);
-    fill(255, 150, 0, this.saturation/2);
-/*     circle(this.position.x,this.position.y,this.size + sin(millis() / 100 + this.wobbleOffset) * 5.15); */
-    image(shine, this.position.x, this.position.y, this.size+ sin(millis() / 100 + this.wobbleOffset) * 5.15, this.size+ sin(millis() / 100 + this.wobbleOffset) * 5.15);
+    fill(255, 150, 0, this.saturation / 2);
+    /*     circle(this.position.x,this.position.y,this.size + sin(millis() / 100 + this.wobbleOffset) * 5.15); */
+    image(shine, this.position.x, this.position.y, this.size + sin(millis() / 100 + this.wobbleOffset) * 5.15, this.size + sin(millis() / 100 + this.wobbleOffset) * 5.15);
     tint(255, this.saturation);
     image(flamme1, this.position.x, this.position.y, this.size, this.size);
-    
+
     pop();
   }
 }
@@ -235,7 +251,7 @@ class Laterne {
   constructor(x, y, size) {
     this.position = new p5.Vector(x, y);
     this.size = size;
-    this.design = floor(random(0,2)); // 0 oder 1
+    this.design = floor(random(0, 2)); // 0 oder 1
 
     this.speed = map(size, latMinSize, latMaxSize, 0.4, 1.3);
     this.activated = false;
@@ -243,38 +259,33 @@ class Laterne {
     this.activatedTimer = 0;
     this.wobbleOffset = random(1000); // Damit sie nicht alle gleich wackeln
     this.color = color(random(200, 255), random(100, 200), 50); // Zufällige warme Farbe
-    
+
     // Timing properties
     this.activationTime = 0;
-    this.stayOnDuration = 20000; // 20 seconds in milliseconds
+    this.stayOnDuration = maxLampTime; // 20 seconds in milliseconds
     this.fadeDuration = 2000; // 8 seconds in milliseconds
     this.fadeProgress = 0; // 0 = fully on, 1 = fully faded
   }
-
   activate() {
     this.activated = true;
     this.activationTime = millis(); // Store when lamp was activated
-    let soundChoice = random(1);
-    if (soundChoice < 0.5) {
-      secondActivationSound.setVolume(random(0.7, 1.0));
-      secondActivationSound.play(); 
-      return;
-    }
-   
-    activationSound.setVolume(random(0.7, 1.0));
-    activationSound.play(); 
+
+    // Pick a random sound from the array
+    let randomSound = random(activationSounds);
+    randomSound.setVolume(random(0.7, 1.0));
+    randomSound.play();
   }
 
   update() {
     // Wenn aktiviert, steigen sie schnell nach oben (Himmel)
     if (this.activated) {
       let elapsedTime = millis() - this.activationTime;
-      
+
       // After staying on for stayOnDuration, start fading
       if (elapsedTime > this.stayOnDuration) {
         let fadeTime = elapsedTime - this.stayOnDuration;
         this.fadeProgress = constrain(fadeTime / this.fadeDuration, 0, 1);
-        
+
         // When fade is complete, deactivate the lamp
         if (this.fadeProgress >= 1) {
           this.activated = false;
@@ -310,26 +321,26 @@ class Laterne {
       let brightness = 1 - this.fadeProgress;
       //let currentSize = this.size * brightness;
       let glowSize = this.size * brightness;
-      
+
       // AN: Leuchtender Kreis + Schein
       // Schein (Glow)
       fill(red(this.color), green(this.color), blue(this.color), 50 * brightness);
       circle(this.position.x, this.position.y, glowSize);
-      
+
       // Progress indicator during stayOnDuration
       let elapsedTime = millis() - this.activationTime;
       if (elapsedTime <= this.stayOnDuration) {
         let progress = elapsedTime / this.stayOnDuration;
         let angle = (1 - progress) * TWO_PI; // Start full, decrease to 0
-        
+
         push();
-        stroke(255, 214, 99,120); // Yellow contour
+        stroke(255, 214, 99, 120); // Yellow contour
         strokeWeight(3);
         noFill();
         arc(this.position.x, this.position.y, this.size + 5, this.size + 5, -HALF_PI, -HALF_PI + angle);
         pop();
       }
-      
+
       // Kern
       fill(this.color);
       if (handOpenedOnce) {
@@ -339,9 +350,9 @@ class Laterne {
       push();
       imageMode(CENTER);
       //tint(255, 255 * brightness); // Apply fade to lamp image
-      if(this.design == 0){
+      if (this.design == 0) {
         image(laterneAn, this.position.x, this.position.y, this.size, this.size);
-      }else{
+      } else {
         image(laterne2An, this.position.x, this.position.y, this.size, this.size);
       }
       pop();
@@ -351,9 +362,9 @@ class Laterne {
       fill(50, 40, 60, 200); // Dunkelviolett/Grau
       push();
       imageMode(CENTER);
-      if(this.design == 0){
+      if (this.design == 0) {
         image(laterneAus, this.position.x, this.position.y, this.size, this.size);
-      }else{
+      } else {
         image(laterne2Aus, this.position.x, this.position.y, this.size, this.size);
       }
       pop();
@@ -401,16 +412,16 @@ class Particle {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    
+
     // Give the particle a random initial velocity (explosion effect)
-    this.vx = random(-0.4, 0.4); 
-    this.vy = random(-0.4, 0.4); 
-    
+    this.vx = random(-0.4, 0.4);
+    this.vy = random(-0.4, 0.4);
+
     this.alpha = 100; // Opacity
     this.size = random(4, 6);
-    
+
     // Set color based on frameCount to cycle through rainbow colors
-    this.hue = frameCount % 20; 
+    this.hue = frameCount % 20;
   }
 
   update() {
@@ -418,10 +429,10 @@ class Particle {
     this.y += this.vy;
 
     // Physics: Apply Gravity
-    this.vy += 0.05; 
-    
+    this.vy += 0.05;
+
     // Decrease lifespan (fade out)
-    this.alpha -= 1.5; 
+    this.alpha -= 1.5;
   }
 
   finished() {
