@@ -88,6 +88,8 @@ function setup() {
   for (let i = 0; i < 3; i++) {
     flames.push(new Flame(0, 0));
   }
+
+
 }
 
 function draw() {
@@ -122,18 +124,7 @@ function draw() {
       }
     } */
 
-  // Iterate through the particle array
-  // We loop backwards because we are removing items from the array
-/*   for (let i = snowflakes.length - 1; i >= 0; i--) {
-    let p = snowflakes[i];
-    p.update();
-    p.show();
 
-    // Remove particle if it becomes invisible (alpha <= 0)
-    if (p.finished()) {
-      snowflakes.splice(i, 1);
-    }
-  } */
   flames[0].display();
 
 
@@ -167,7 +158,7 @@ function gotHands(results) {
 function checkCollisions(handX, handY) {
   const collisionRadius = 50;
   const collisionRadiusSq = collisionRadius * collisionRadius; // Use squared distance to avoid sqrt
-  
+
   for (let l of laternen) {
     // Nur prüfen, wenn Laterne noch NICHT an ist
     if (!l.activated) {
@@ -177,7 +168,7 @@ function checkCollisions(handX, handY) {
         let dx = handX - l.position.x;
         let dy = handY - l.position.y;
         let distSq = dx * dx + dy * dy;
-        
+
         if (distSq < collisionRadiusSq) {
           l.activate(); // Laterne anzünden!
           punktestand++;
@@ -224,12 +215,7 @@ function calculateHandPositions(hand, flame) {
   flame.position.x = center.x;
   flame.position.y = center.y;
 
-  /*   if (flame.position.x !== flame.prevPosition.x || flame.position.y !== flame.prevPosition.y) {
-      for (let i = 0; i < 10; i++) {
-        snowflakes.push(new Particle(flame.position.x + random(-10, 10), flame.position.y + random(-10, 10)));
-      }
-    }
-    flame.prevPosition = flame.position.copy(); */
+    flame.prevPosition = flame.position.copy();
 
 
 }
@@ -426,79 +412,3 @@ class Firework {
     }
   }
 }
-
-class Particle {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-
-    // Give the particle a random initial velocity (explosion effect)
-    this.vx = random(-0.4, 0.4);
-    this.vy = random(-0.4, 0.4);
-
-    this.alpha = 100; // Opacity
-    this.size = random(4, 6);
-
-    // Set color based on frameCount to cycle through rainbow colors
-    this.hue = frameCount % 20;
-  }
-
-  update() {
-    this.x += this.vx;
-    this.y += this.vy;
-
-    // Physics: Apply Gravity
-    this.vy += 0.05;
-
-    // Decrease lifespan (fade out)
-    this.alpha -= 1.5;
-  }
-
-  finished() {
-    return this.alpha < 0;
-  }
-
-  show() {
-    fill(255, 255, 255, this.alpha);
-    ellipse(this.x, this.y, this.size);
-  }
-}
-
-/* class Particle {
-  constructor(x, y, hue, isBig) {
-    this.pos = createVector(x, y);
-    this.hue = hue;
-    this.lifespan = 255;
-    this.isBig = isBig; // Speichern, ob groß oder klein
-
-    this.vel = p5.Vector.random2D();
-
-    // UNTERSCHIED GROSS vs KLEIN
-    if (this.isBig) {
-      // Große Punkte: Langsam (bleiben im Zentrum)
-      this.vel.mult(random(1, 4));
-      this.size = random(8, 15);
-    } else {
-      // Kleine Punkte: Schnell (fliegen weit weg)
-      this.vel.mult(random(5, 15));
-      this.size = random(2, 5);
-    }
-  }
-
-  update() {
-    this.vel.mult(0.95); // Luftwiderstand (bremst ab)
-    this.pos.add(this.vel);
-    this.lifespan -= 4; // Wie schnell sie verblassen
-  }
-
-  done() {
-    return this.lifespan < 0;
-  }
-
-  show() {
-    // Farbe variiert leicht für Glitzer-Effekt
-    stroke((this.hue + random(-20, 20) + 360) % 360, 255, 255, this.lifespan);
-    strokeWeight(this.size);
-    point(this.pos.x, this.pos.y);
-  }
-} */
