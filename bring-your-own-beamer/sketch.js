@@ -1,7 +1,7 @@
 /* CONTROLS */
 
-let maxLampTime = 100000;
-let maxLampAmount = 8;
+let maxLampTime = 30000;
+let maxLampAmount = 9;
 
 let video;
 let handPose;
@@ -21,6 +21,7 @@ let scoreImage;
 let flames = [];
 let resizedBackground; // Cache resized background
 let resizedScoreImage; // Cache resized score image
+let backgroundScoreImg;
 
 //hand movement
 let prevHandOpen = true;
@@ -38,6 +39,16 @@ let latMinSize = 80;
 let activationSounds = [];
 let backgroundMusic;
 
+//flame
+let flameMinSize = 80;
+let flameMaxSize = 250;
+
+//victory screen
+let allLampsLit = false;
+let victoryStartTime = 0;
+let victoryDuration = 20000; // 20 seconds
+let resizedBackgroundScoreImg;
+
 function preload() {
   // HandPose Modell laden
   handPose = ml5.handPose({ flipped: true });
@@ -51,6 +62,8 @@ function preload() {
   flamme1 = loadImage("images/flamme1.png"); myFont = loadFont('fonts/Oldenburg-Regular.ttf');
   scoreImage = loadImage("pointsScroll.png");
   shine = loadImage("images/shine.png");
+  backgroundScoreImg = loadImage("images/score.png");
+
   // Load activation sounds into array
   activationSounds.push(loadSound("sounds/holy-spell-cast-450460.mp3"));
   activationSounds.push(loadSound("sounds/fx-light-90387.mp3"));
@@ -73,12 +86,13 @@ function setup() {
   // Start background music with volume 0.5
   backgroundMusic.setVolume(0.5);
   backgroundMusic.loop(); // Loop the music continuously
-
   // Resize images once during setup instead of every frame
   resizedBackground = myBackground.get();
   resizedBackground.resize(0, height);
   resizedScoreImage = scoreImage.get();
   resizedScoreImage.resize(0, 170);
+  resizedBackgroundScoreImg = backgroundScoreImg.get();
+  resizedBackgroundScoreImg.resize(0, 400);
 
   // Wir erstellen 5 zufällige Laternen zum Start
   for (let i = 0; i < maxLampAmount; i++) {
@@ -106,12 +120,11 @@ function draw() {
   }
 
   // 2. Hand-Logik
-
   for (let i = 0; i < hands.length; i++) {
     let hand = hands[i];
     calculateHandPositions(hand, flames[i]);
     flames[i].display();
-    checkCollisions(flames[i].position.x, flames[i].position.y);
+    checkCollisions(flames[i].position.x, flames[i].position.y, flames[i].size);
   }
 
 
@@ -124,9 +137,28 @@ function draw() {
       }
     } */
 
-
   flames[0].display();
 
+  // Check if all lamps are lit
+  let allActivated = laternen.every(l => l.activated);
+  if (allActivated && !allLampsLit) {
+    // First time all lamps are lit
+    allLampsLit = true;
+    victoryStartTime = millis();
+  }
+
+  // Display victory screen if all lamps are lit
+  if (allLampsLit) {
+    let elapsedTime = millis() - victoryStartTime;
+    
+    if (elapsedTime < victoryDuration) {
+      // Show victory screen
+      displayVictoryScreen(elapsedTime);
+    } else {
+      // Reset game after 20 seconds
+      resetGame();
+    }
+  }
 
   push();
   tint(255, 200);
@@ -143,6 +175,60 @@ function draw() {
   text("Laternen ", 120, 115);
 }
 
+function displayVictoryScreen(elapsedTime) {
+  // Semi-transparent overlay
+  push();
+  fill(0, 0, 0, 150);
+  rect(0, 0, width, height);
+  
+  // Display background score image in center
+  imageMode(CENTER);
+  image(resizedBackgroundScoreImg, width / 2, height / 2 - 50);
+  
+  // Display victory text
+  fill(255, 214, 99);
+  stroke(101, 67, 33);
+  strokeWeight(3);
+  textAlign(CENTER, CENTER);
+  textSize(60);
+  text("Du hast alle Laternen", width / 2, height / 2 + 200);
+  text("angezündet!", width / 2, height / 2 + 270);
+  
+  // Draw countdown arc
+  let progress = elapsedTime / victoryDuration;
+  let remainingAngle = (1 - progress) * TWO_PI;
+  let secondsLeft = ceil((victoryDuration - elapsedTime) / 1000);
+  
+  // Arc showing remaining time
+  noFill();
+  stroke(255, 214, 99);
+  strokeWeight(8);
+  arc(width / 2, height / 2 + 380, 120, 120, -HALF_PI, -HALF_PI + remainingAngle);
+  
+  // Display seconds in center of arc
+  noStroke();
+  fill(255, 214, 99);
+  textSize(40);
+  text(secondsLeft, width / 2, height / 2 + 380);
+  
+  pop();
+}
+
+function resetGame() {
+  // Reset all lamps
+  for (let l of laternen) {
+    l.activated = false;
+    l.fadeProgress = 0;
+    l.position.y = random(50, height - 100);
+    l.position.x = random(50, width - 50);
+  }
+  
+  // Reset score and victory state
+  punktestand = 0;
+  allLampsLit = false;
+  victoryStartTime = 0;
+}
+
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   // Resize background images when window is resized
@@ -155,8 +241,10 @@ function gotHands(results) {
 }
 
 // Funktion zum Prüfen der Treffer
-function checkCollisions(handX, handY) {
-  const collisionRadius = 50;
+function checkCollisions(handX, handY, flameSize) {
+  // Collision radius scales with flame size
+  // Map flame size to collision radius: bigger flame = bigger activation area
+  const collisionRadius = map(flameSize, flameMinSize, flameMaxSize, 40, 100);
   const collisionRadiusSq = collisionRadius * collisionRadius; // Use squared distance to avoid sqrt
 
   for (let l of laternen) {
@@ -180,44 +268,39 @@ function checkCollisions(handX, handY) {
 
 function calculateHandPositions(hand, flame) {
   let rawThumb = hand.thumb_tip;
-  let rawPinky = hand.pinky_finger_tip;
+  let rawIndex = hand.index_finger_tip;
 
-  // Jetzt mappen wir die Koordinaten auf die Canvas-Größe
-  // Syntax: map(wert, videoMin, videoMax, canvasMin, canvasMax)
-
+  // Map coordinates to canvas size
   let thumb = {
     x: map(rawThumb.x, 0, video.width, 0, width),
     y: map(rawThumb.y, 0, video.height, 0, height)
   };
 
-  let pinky = {
-    x: map(rawPinky.x, 0, video.width, 0, width),
-    y: map(rawPinky.y, 0, video.height, 0, height)
+  let index = {
+    x: map(rawIndex.x, 0, video.width, 0, width),
+    y: map(rawIndex.y, 0, video.height, 0, height)
   };
 
   let center = {
-    x: (thumb.x + pinky.x) / 2,
-    y: (thumb.y + pinky.y) / 2
+    x: (thumb.x + index.x) / 2,
+    y: (thumb.y + index.y) / 2
   };
 
-  // is hand open
-  spread = dist(thumb.x, thumb.y, pinky.x, pinky.y);
-  flame.isHandOpen = spread > 60;
-  if (!flame.prevHandOpen && flame.isHandOpen) {
-    // Hand was closed and is now open
-    // --> Trigger your event here!
-    flame.size = 150;
-    console.log("Hand was closed and opened again!");
-  }
-  flame.prevHandOpen = flame.isHandOpen;
-
+  // Calculate distance between thumb and index finger
+  let fingerDistance = dist(thumb.x, thumb.y, index.x, index.y);
+  
+  // Map finger distance directly to flame size in real-time
+  // Close fingers (small distance ~20-40) = small flame
+  // Far fingers (large distance ~100-200) = big flame
+  flame.size = map(fingerDistance, 20, 150, flameMinSize, flameMaxSize);
+  flame.size = constrain(flame.size, flameMinSize, flameMaxSize);
+  
+  // Update saturation based on flame size for visual feedback
+  flame.saturation = map(flame.size, flameMinSize, flameMaxSize, 80, 255);
 
   flame.position.x = center.x;
   flame.position.y = center.y;
-
-    flame.prevPosition = flame.position.copy();
-
-
+  flame.prevPosition = flame.position.copy();
 }
 
 
@@ -225,28 +308,22 @@ class Flame {
   constructor(x, y) {
     this.position = new p5.Vector(x, y);
     this.prevPosition = this.position.copy();
-    this.size = 150;
-    this.prevHandOpen = true;
-    this.isHandOpen = true;
+    this.size = flameMinSize;
     this.saturation = 255;
     this.wobbleOffset = random(1000);
   }
 
   display() {
-    //flame size decrease till 20
-    // the saturation of the flame image could also decrease with size
-    if (this.size > 60) {
-      this.saturation = map(this.size, 60, 150, 30, 180);
-      this.size -= 0.2;
-    }
+    // Saturation is now controlled directly from calculateHandPositions
     push();
     imageMode(CENTER);
     fill(255, 150, 0, this.saturation / 2);
-    /*     circle(this.position.x,this.position.y,this.size + sin(millis() / 100 + this.wobbleOffset) * 5.15); */
-    image(shine, this.position.x, this.position.y, this.size + sin(millis() / 100 + this.wobbleOffset) * 5.15, this.size + sin(millis() / 100 + this.wobbleOffset) * 5.15);
+    // Draw glow/shine effect
+    image(shine, this.position.x, this.position.y, 
+          this.size + sin(millis() / 100 + this.wobbleOffset) * 5.15, 
+          this.size + sin(millis() / 100 + this.wobbleOffset) * 5.15);
     tint(255, this.saturation);
     image(flamme1, this.position.x, this.position.y, this.size, this.size);
-
     pop();
   }
 }
