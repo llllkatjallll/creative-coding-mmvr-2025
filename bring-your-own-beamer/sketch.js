@@ -1,6 +1,7 @@
 /* CONTROLS */
 
-let maxLampTime = 30000;
+let maxLampTime = 100000;
+let maxLampAmount = 8;
 
 let video;
 let handPose;
@@ -73,7 +74,7 @@ function setup() {
   backgroundMusic.loop(); // Loop the music continuously
 
   // Wir erstellen 5 zufällige Laternen zum Start
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < maxLampAmount; i++) {
     laternen.push(new Laterne(random(50, width - 50), random(50, height - 100), random(latMinSize, latMaxSize)));
   }
 
