@@ -19,6 +19,8 @@ let handZu, handAuf;
 let flamme1, shine;
 let scoreImage;
 let flames = [];
+let resizedBackground; // Cache resized background
+let resizedScoreImage; // Cache resized score image
 
 //hand movement
 let prevHandOpen = true;
@@ -64,30 +66,34 @@ function preload() {
 function setup() {
   createCanvas(windowWidth, windowHeight);
   textFont(myFont);
-
+  frameRate(20);
   video = createCapture(VIDEO, { flipped: true });
   video.hide();
   handPose.detectStart(video, gotHands);
-
   // Start background music with volume 0.5
   backgroundMusic.setVolume(0.5);
   backgroundMusic.loop(); // Loop the music continuously
+
+  // Resize images once during setup instead of every frame
+  resizedBackground = myBackground.get();
+  resizedBackground.resize(0, height);
+  resizedScoreImage = scoreImage.get();
+  resizedScoreImage.resize(0, 170);
 
   // Wir erstellen 5 zufällige Laternen zum Start
   for (let i = 0; i < maxLampAmount; i++) {
     laternen.push(new Laterne(random(50, width - 50), random(50, height - 100), random(latMinSize, latMaxSize)));
   }
 
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 3; i++) {
     flames.push(new Flame(0, 0));
   }
 }
 
 function draw() {
 
-
-  myBackground.resize(0, height);
-  image(myBackground, 0, 0);
+  // Use pre-resized background image
+  image(resizedBackground, 0, 0);
   background(0, darkness - punktestand * ((210 - 50) / laternen.length));
 
 
@@ -118,7 +124,7 @@ function draw() {
 
   // Iterate through the particle array
   // We loop backwards because we are removing items from the array
-  for (let i = snowflakes.length - 1; i >= 0; i--) {
+/*   for (let i = snowflakes.length - 1; i >= 0; i--) {
     let p = snowflakes[i];
     p.update();
     p.show();
@@ -127,18 +133,14 @@ function draw() {
     if (p.finished()) {
       snowflakes.splice(i, 1);
     }
-  }
-
+  } */
   flames[0].display();
 
 
   push();
-  scoreImage.resize(0, 170);
   tint(255, 200);
-
-  image(scoreImage, 10, 10,);
+  image(resizedScoreImage, 10, 10);
   pop();
-
   // Punktestand anzeigen
   // fill dark brown
   fill(101, 67, 33);
@@ -150,20 +152,36 @@ function draw() {
   text("Laternen ", 120, 115);
 }
 
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  // Resize background images when window is resized
+  resizedBackground = myBackground.get();
+  resizedBackground.resize(0, height);
+}
+
 function gotHands(results) {
   hands = results;
 }
 
 // Funktion zum Prüfen der Treffer
 function checkCollisions(handX, handY) {
+  const collisionRadius = 50;
+  const collisionRadiusSq = collisionRadius * collisionRadius; // Use squared distance to avoid sqrt
+  
   for (let l of laternen) {
     // Nur prüfen, wenn Laterne noch NICHT an ist
     if (!l.activated) {
-      let d = dist(handX, handY, l.position.x, l.position.y);
-      // Wenn Hand nah genug an Laterne ist (50px Radius)
-      if (d < 50) {
-        l.activate(); // Laterne anzünden!
-        punktestand++;
+      // Quick bounding box check first (cheaper than distance calculation)
+      if (abs(handX - l.position.x) < collisionRadius && abs(handY - l.position.y) < collisionRadius) {
+        // Now do the actual distance check using squared distance
+        let dx = handX - l.position.x;
+        let dy = handY - l.position.y;
+        let distSq = dx * dx + dy * dy;
+        
+        if (distSq < collisionRadiusSq) {
+          l.activate(); // Laterne anzünden!
+          punktestand++;
+        }
       }
     }
   }
